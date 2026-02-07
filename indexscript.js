@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // 🚨 IMPORTANT: Replace 'YOUR_TMDB_API_KEY_HERE' with your actual API key
     const API_KEY = 'bb39f92870d27e9174370323ef4bc6a0'; // Your provided API key
-    
+
     const moviesContainer = document.getElementById('movies-container');
     const searchInput = document.getElementById('searchInput');
     const searchButton = document.getElementById('searchButton');
@@ -18,9 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // MODAL ELEMENTS
     const movieModal = document.getElementById('movie-modal');
     const modalBackdrop = document.getElementById('modal-backdrop');
-    
+
     // --- CONSTANTS FOR FILTERING ---
-    const DEFAULT_SORT = 'primary_release_date.desc'; 
+    const DEFAULT_SORT = 'primary_release_date.desc';
     const PAGES_TO_FETCH = 3;
     // 🆕 NEW: Get today's date in YYYY-MM-DD format (e.g., "2025-10-10")
     const TODAY_DATE = new Date().toISOString().split('T')[0];
@@ -32,10 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const typewriterElement = document.getElementById("typewriter");
     let charIndex = 0;
-    
+
     // --- Dropdown Menu Toggling ---
     menuToggle.addEventListener('click', (event) => {
-        event.stopPropagation(); 
+        event.stopPropagation();
         dropdownMenu.classList.toggle('visible');
     });
 
@@ -64,9 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const getRandomQuote = () => {
+        if (!heroQuote) return; // ← skip if the element is gone
         const randomIndex = Math.floor(Math.random() * movieQuotes.length);
         heroQuote.textContent = movieQuotes[randomIndex];
     };
+
 
     function typeWriter() {
         if (charIndex < typingText.length) {
@@ -75,15 +77,16 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(typeWriter, 100);
         } else {
             typewriterElement.style.borderRight = 'none';
-            heroQuote.style.opacity = 0;
-            setTimeout(() => {
-                heroQuote.style.transition = 'opacity 1s ease-in';
-                heroQuote.style.opacity = 1;
-            }, 500);
+            if (heroQuote) {  // only run if heroQuote exists
+                heroQuote.style.opacity = 0;
+                setTimeout(() => {
+                    heroQuote.style.transition = 'opacity 1s ease-in';
+                    heroQuote.style.opacity = 1;
+                }, 500);
+            }
         }
     }
-    typeWriter();
-    getRandomQuote();
+
 
     // --- Modal Logic ---
     const closeModal = () => {
@@ -91,31 +94,31 @@ document.addEventListener('DOMContentLoaded', () => {
         modalBackdrop.classList.remove('open');
         // Stop any embedded videos or clear content after transition
         setTimeout(() => {
-            movieModal.innerHTML = ''; 
-        }, 300); 
+            movieModal.innerHTML = '';
+        }, 300);
     };
-    window.closeModal = closeModal; 
+    window.closeModal = closeModal;
     modalBackdrop.addEventListener('click', closeModal);
 
     // 🌟 FUNCTION TO FETCH REAL WATCH PROVIDERS (OTT) 🌟
     const fetchWatchProviders = async (movieId) => {
         // We use 'IN' (India) as the region for Telugu movie streaming availability
         const url = `https://api.themoviedb.org/3/movie/${movieId}/watch/providers?api_key=${API_KEY}`;
-        
+
         try {
             const response = await fetch(url);
             if (!response.ok) return [];
             const data = await response.json();
-            
+
             // Check for streaming availability in the India region ('IN')
             const indiaProviders = data.results.IN;
-            
+
             if (indiaProviders && indiaProviders.flatrate) {
                 // Return only the subscription (flatrate) providers
                 return indiaProviders.flatrate;
             }
             return []; // No streaming providers found
-            
+
         } catch (error) {
             console.error('Error fetching watch providers:', error);
             return [];
@@ -147,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- FETCH REAL OTT DATA ---
         const providers = await fetchWatchProviders(movieId);
-        
+
         let watchButtonsHtml = '';
 
         if (providers && providers.length > 0) {
@@ -235,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                     .catch(error => {
                         console.error(`Error fetching page ${i}:`, error);
-                        return { results: [] }; 
+                        return { results: [] };
                     })
             );
         }
@@ -247,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const displayMovies = (movies, isSearch = false) => {
         moviesContainer.innerHTML = '';
-        
+
         // Final client-side check to ensure only released Telugu movies with posters are shown
         const filteredMovies = movies.filter(movie => {
             const isTelugu = movie.original_language === 'te';
@@ -261,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
             moviesContainer.innerHTML = `<p style="text-align:center; color: var(--muted); font-size:1.1em; padding: 40px;">No released Telugu movies found matching your criteria.</p>`;
             return;
         }
-        
+
         // Sort by Release Date (Newest first)
         filteredMovies.sort((a, b) => {
             const dateA = new Date(a.release_date);
@@ -274,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
             movieCard.classList.add('card');
             const posterPath = movie.poster_path ? `https://image.tmdb.org/t/p/w300${movie.poster_path}` : 'https://via.placeholder.com/300x450.png?text=No+Image';
             const releaseYear = movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A';
-            
+
             movieCard.innerHTML = `
                 <img src="${posterPath}" alt="${movie.title} Poster">
                 <div class="card-overlay">
@@ -286,17 +289,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p> (${releaseYear})</p>
                 </div>
             `;
-            movieCard.addEventListener('click', () => openModal(movie)); 
+            movieCard.addEventListener('click', () => openModal(movie));
             moviesContainer.appendChild(movieCard);
         });
     };
 
     const applyFilters = async (searchQuery = null) => {
         const selectedGenre = genreFilter.value;
-        const selectedYear = yearFilter.value; 
+        const selectedYear = yearFilter.value;
         const selectedRating = ratingFilter.value;
 
-        let currentSort = DEFAULT_SORT; 
+        let currentSort = DEFAULT_SORT;
         let endpoint = 'discover/movie';
 
         if (searchQuery) {
@@ -307,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let baseUrl = `https://api.themoviedb.org/3/${endpoint}?api_key=${API_KEY}&language=en-US&sort_by=${currentSort}&primary_release_date.lte=${TODAY_DATE}`;
-        
+
         if (searchQuery) {
             baseUrl += `&query=${encodeURIComponent(searchQuery)}`;
         } else {
@@ -323,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const movies = await fetchMultiplePages(baseUrl);
         displayMovies(movies, !!searchQuery);
     };
-    
+
     // --- 🚨 CORRECTED SEARCH HANDLER ---
     const performSearch = () => {
         const query = searchInput.value.trim();
@@ -333,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Assign the correct function to the button click
     searchButton.addEventListener('click', performSearch);
-    
+
     // Assign the correct function to the Enter key press
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') performSearch();
@@ -380,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Run the initial fetch after filters are populated
         applyFilters();
     };
-    
+
     // --- Event Listeners for Filters ---
     // Filters should trigger a fetch without a search query
     genreFilter.addEventListener('change', () => applyFilters());
@@ -389,4 +392,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial setup
     populateFilters();
+    typeWriter();
 });
